@@ -1,123 +1,79 @@
-import faiss
-import pickle
+import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-# ---------------------------------
-# Load embedding model
-# ---------------------------------
+
+# Load model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# ---------------------------------
-# Load FAISS index
-# ---------------------------------
-index = faiss.read_index("mental_index.faiss")
+# Load dataset
+with open("mental_awareness_60_trees_kb.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
 
-# ---------------------------------
-# Load metadata
-# ---------------------------------
-with open("metadata.pkl", "rb") as f:
-    metadata = pickle.load(f)
+# Keep only ROOT nodes
+roots = [node for node in data if node.get("type") == "root"]
 
-# ---------------------------------
-# Conversation state
-# ---------------------------------
-current_node = None
-followup_index = 0
+# Prepare embeddings from stored vectors
+root_vectors = np.array([node["vector"] for node in roots])
+
+
+def find_best_root(user_input):
+    query_vec = model.encode(user_input)
+
+    similarities = np.dot(root_vectors, query_vec)
+
+    best_index = np.argmax(similarities)
+
+    if similarities[best_index] > 0.35:   # threshold
+        return roots[best_index]
+
+    return None
+
 
 print("\n🧠 Mental Wellness Chatbot")
 print("Type 'exit' to stop\n")
 
-
-# ---------------------------------
-# Detect new question
-# ---------------------------------
-def is_new_question(text):
-
-    text = text.lower()
-
-    keywords = [
-        "why",
-        "how",
-        "i feel",
-        "i am",
-        "i'm",
-        "i cant",
-        "i can't",
-        "i dont",
-        "i don't",
-        "i have",
-        "i keep",
-    ]
-
-    for k in keywords:
-        if k in text:
-            return True
-
-    return False
+current_tree = None
+followup_index = 0
 
 
-# ---------------------------------
-# Chat loop
-# ---------------------------------
 while True:
 
     user_input = input("You: ")
 
     if user_input.lower() == "exit":
+        print("Bot: Take care. I'm here whenever you want to talk.")
         break
 
-    # ---------------------------------
-    # Detect topic change or new query
-    # ---------------------------------
-    if current_node is None or is_new_question(user_input):
+    # 🔎 Always check if this is a new root trigger
+    new_tree = find_best_root(user_input)
 
-        query_vector = model.encode([user_input])
-        query_vector = np.array(query_vector).astype("float32")
-
-        distances, indices = index.search(query_vector, 1)
-
-        best_match = metadata[indices[0][0]]
-
-        current_node = best_match
+    if new_tree:
+        current_tree = new_tree
         followup_index = 0
 
-        print("\nBot:", best_match.get("response", ""))
+        print("\nBot:", current_tree["response"])
 
-        followups = best_match.get("followups", [])
-
-        if followups:
-            print("\nBot:", followups[0]["question"])
+        if current_tree["followups"]:
+            print("\nBot:", current_tree["followups"][0]["question"])
 
         continue
 
-    # ---------------------------------
-    # Handle follow-ups
-    # ---------------------------------
-    followups = current_node.get("followups", [])
+    # 🧠 If already in conversation → followup logic
+    if current_tree:
 
-    if followup_index < len(followups):
+        followups = current_tree["followups"]
 
-        answer = followups[followup_index]["answer"]
-
-        print("\nBot:", answer)
+        print("\nBot:", followups[followup_index]["answer"])
 
         followup_index += 1
 
         if followup_index < len(followups):
-
-            next_question = followups[followup_index]["question"]
-
-            print("\nBot:", next_question)
-
+            print("\nBot:", followups[followup_index]["question"])
         else:
-
-            print("\nBot: Thanks for sharing. Would you like to talk about something else?")
-
-            current_node = None
+            print("\nBot: Thank you for sharing. If you'd like, you can tell me about another concern.\n")
+            current_tree = None
             followup_index = 0
 
     else:
-
-        current_node = None
-        followup_index = 0
+        print("Bot: I'm here to listen. Could you tell me more?")
