@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-sage: #7C9A92;
+  --color-bone: #F4F1EA;
+  --color-clay: #E2D1C3;
+  --color-slate-soft: #9BAEBC;
+
+  --animate-pulse-soft: pulse-soft 4s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes pulse-soft {
+
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+:root {
+  --background: #F4F1EA;
+  /* Bone */
+  --foreground: #2C3639;
+  /* Dark Slate */
+  --accent: #7C9A92;
+  /* Sage */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+  font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(124, 154, 146, 0.1);
+}
+
+.zen-orb {
+  background: linear-gradient(135deg, #7C9A92 0%, #9BAEBC 100%) !important;
+  filter: none !important;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.4),
+    0 4px 12px rgba(124, 154, 146, 0.3) !important;
+}
